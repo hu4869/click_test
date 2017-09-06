@@ -3,7 +3,6 @@ __author__ = 'Yueqi'
 import pandas as pd
 import pickle
 import networkx as nx
-
 dir = open('data_source_folder','r').readline()
 bg = pickle.load(open(dir+'g_graph.pickle', 'rb'))
 
