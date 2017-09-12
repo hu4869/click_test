@@ -5,6 +5,7 @@ from sqlalchemy import create_engine
 cnx = create_engine("mysql://root:yueyue@localhost/recom")
 
 # create a full plink table
+# consider popular profiles only
 movies = pd.read_sql('SELECT mid, genres, keyword, crew, cast, studio FROM movie', cnx)
 import json
 def get_attrs(row):

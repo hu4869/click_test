@@ -8,10 +8,4 @@ bg = pickle.load(open(dir+'g_graph.pickle', 'rb'))
 
 # get all pair distance (length)
 length = nx.all_pairs_dijkstra_path_length(bg)
-pickle.dump(length, open(dir+'global_distance','wb'))
-
-# # read from pickle
-# grouped = pd.read_pickle(dir+'top_user.pickle').groupby('userId')
-# import numpy as np
-#
-# pd.DataFrame(d).to_pickle(dir+'g_click_dist')
+pickle.dump(length, open(dir+'g_distance','wb'))
