@@ -1,19 +1,18 @@
 import pandas as pd
-import pickle
-import networkx as nx
-
 dir = open('data_source_folder','r').readline()
-g_dist = pd.concat([pd.read_pickle(dir+'g_res.pickle'+str(i)) for i in range(18)])
+g_dist = pd.read_pickle(dir+'g_res.pickle')
+g_dist = g_dist.sort_values(by='jacc', ascending=False).groupby('m1').head(50)
+group = g_dist.groupby('m1')
 
+import networkx as nx
 bg = nx.DiGraph()
-nodes = [int(v) for v in open('mids.txt')]
 
-edges = pd.DataFrame()
-for m in nodes:
-    df = g_dist[(g_dist['m1']== m) | (g_dist['m2']== m)].sort_values(by='corr', ascending=False).head(5)
-    df.reset_index(drop=True, inplace=True)
-    for i, t in df.iterrows():
-        bg.add_edge(m, t['m1']+t['m2'] - m, weight=i+1)
+for m1, g in group:
+    a = g
+    a = a.reset_index()
+    for index, row in a.iterrows():
+        bg.add_edge(m1, row['m2'], weight=index)
 
 # pickle the graph
+import pickle
 pickle.dump(bg, open(dir+'g_graph.pickle', 'wb'))

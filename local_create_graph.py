@@ -1,45 +1,25 @@
 __author__ = 'Yueqi'
 import pandas as pd
-import pickle
-import networkx as nx
 
 dir = open('data_source_folder','r').readline()
-l_dist = pd.read_pickle(dir+'res.pickle')
+l_dist = pd.concat([pd.read_pickle(dir+'res.pickle'+str(i)) for i in range(30)])
+l_dist = l_dist.sort_values(by='jacc', ascending=False).groupby(['m1','tid']).head(50)
 
-# create graph
-# remove duplicate movie and re-rank
+# calculate number of operation to access the topic from a movie
+# rank topic on each focal
+topics = pd.read_csv('weight.txt', sep='\t', header=None, names=["tid", "m1", "w"]).astype(int)
+topics = topics[topics['w'] > 10]
+topics['t_rank'] = topics.groupby('m1')['w'].rank(ascending=False)-1
+l_dist = pd.merge(l_dist, topics[topics['t_rank']<10], how='inner', on=['tid','m1'])
+l_dist['dist'] = l_dist.groupby(['tid','m1'])['jacc'].rank(ascending=False) + l_dist['t_rank']
 
+import networkx as nx
 bg = nx.DiGraph()
 nodes = [int(v) for v in open('mids.txt')]
 
-# calculate number of operation to access the topic from a movie
-# sort movie by weights
-topics = pd.read_csv('weight.txt', sep='\t', header=None, names=["tid", "mid", "w"]).astype(int)
-topics = topics[topics['w'] > 10]
-topics['rank'] = topics.groupby('mid')['w'].rank()
-
-groups = l_dist.groupby('tid')
-from math import log
-for tid, g_dist in groups:
-    for m in l_dist[l_dist['tid'] == tid]['m1'].unique():
-        m_t = topics[topics['tid'] == tid][topics['mid'] == m]
-        if len(m_t) == 0:
-            print('error!')
-            continue
-
-        t_dist2m = log(float(m_t['rank']),2)
-        df = g_dist[(g_dist['m1'] == m) | (g_dist['m2']== m)].sort_values(by='corr', ascending=False).head(5)
-        df.reset_index(drop=True, inplace=True)
-
-        # keep the
-        for i, t in df.iterrows():
-            n1 = m
-            n2 = t['m1']+t['m2'] - m
-            if bg.has_edge(n1, n2) and bg[n1][n2]['weight'] > i+t_dist2m+1:
-                bg[n1][n2]['weight'] = i+t_dist2m+1
-            else:
-                bg.add_edge(n1, n2, weight=i+t_dist2m+1)
-    print (tid)
+for (m1, m2), dist in l_dist.groupby(['m1','m2']).min()['dist'].iteritems():
+    bg.add_edge(m1, m2, weight=dist)
 
 # pickle the graph
+import pickle
 pickle.dump(bg, open(dir+'l_graph.pickle', 'wb'))
